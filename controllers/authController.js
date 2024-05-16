@@ -5,6 +5,7 @@ const usersDB = {
   },
 };
 const bcrypt = require("bcrypt");
+
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const fsPromises = require("fs").promises;
@@ -27,14 +28,13 @@ const handleLogin = async (req, res) => {
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "30s" }
     );
-
     const refreshToken = jwt.sign(
       { username: foundUser.username },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "1d" }
     );
-
-    const otherUsers = usersDB.users.find(
+    // Saving refreshToken with current user
+    const otherUsers = usersDB.users.filter(
       (person) => person.username !== foundUser.username
     );
     const currentUser = { ...foundUser, refreshToken };
@@ -43,9 +43,10 @@ const handleLogin = async (req, res) => {
       path.join(__dirname, "..", "model", "users.json"),
       JSON.stringify(usersDB.users)
     );
-
     res.cookie("jwt", refreshToken, {
-      httpOnly: true, //httpOnly makes cookie not accessible to js so others cant access
+      httpOnly: true,
+      sameSite: "None",
+      secure: true,
       maxAge: 24 * 60 * 60 * 1000,
     });
     res.json({ accessToken });
